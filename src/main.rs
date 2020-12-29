@@ -43,10 +43,10 @@ async fn main() {
             Ok(s) => s,
             Err(_e) => { std::process::exit(1) }
         };
-        println!("Message is: {}", msgstr);
+        //println!("Message is: {}", msgstr);
         // Build a JSON deserializer for the message
         let event : cloudevents::event::Event = serde_json::from_str(msgstr).unwrap();
-        println!("{}", event);
+        //println!("{}", event);
         let payload = match event.data().unwrap() {
             cloudevents::Data::Json(v) => v,
             _ => { 
@@ -54,7 +54,7 @@ async fn main() {
                 std::process::exit(1);
             }
         }; 
-        println!("{}", payload);
+        //println!("{}", payload);
         // extract fields from payload
         let mainobj = match payload {
             serde_json::value::Value::Object(m) => m,
