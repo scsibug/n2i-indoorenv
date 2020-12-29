@@ -2,12 +2,13 @@
 use influxdb::InfluxDbWriteable;
 use chrono::{DateTime, TimeZone, Utc};
 
+// time, location, sensorModel are mandatory
 #[derive(InfluxDbWriteable)]
     struct IndoorEnvReading {
         time: DateTime<Utc>,
-        temp: f64,
-        humidity: f64,
-        pressure: f64,
+        temp: Option<f64>,
+        humidity: Option<f64>,
+        pressure: Option<f64>,
         #[tag] location: String,
         #[tag] sensorModel: String,
     }
@@ -18,7 +19,7 @@ async fn main() {
     let ncres = nats::connect("nats.wellorder.net");
     let nc = match ncres {
         Ok(conn) => conn,
-        Err(e) => {
+        Err(_e) => {
             println!("Could not connect, bailing");
             std::process::exit(1);
         }
@@ -27,7 +28,7 @@ async fn main() {
     let subres = nc.subscribe("iot.indoorenv");
     let sub = match subres {
         Ok(s) => s,
-        Err(e) => {
+        Err(_e) => {
             println!("Could not get subscription, bailing");
             std::process::exit(1);
         }
@@ -36,12 +37,11 @@ async fn main() {
     println!("Connecting to InfluxDB");
     let client = influxdb::Client::new("http://ektar.wellorder.net:8086", "iot");
     for msg in sub.messages() {
-        println!("Received Message!");
-        println!("This message subject is: {}", msg.subject);
+        //println!("This message subject is: {}", msg.subject);
         let utf8res = std::str::from_utf8(&msg.data);
         let msgstr = match utf8res {
             Ok(s) => s,
-            Err(e) => { std::process::exit(1) }
+            Err(_e) => { std::process::exit(1) }
         };
         println!("Message is: {}", msgstr);
         // Build a JSON deserializer for the message
@@ -64,17 +64,15 @@ async fn main() {
             }
         };
         // extract temp from mainobj
-        println!("{}", mainobj.get("temp").unwrap());
-        let temp = mainobj.get("temp").unwrap().as_f64().unwrap();
-        // humiditiy
-        let humidity = mainobj.get("humidity").unwrap().as_f64().unwrap();
+        let temp = mainobj.get("temp").and_then(serde_json::Value::as_f64);
+        // humiditiy;
+        let humidity = mainobj.get("humidity").and_then(serde_json::Value::as_f64);
         // pressure
-        let pressure = mainobj.get("pressure").unwrap().as_f64().unwrap();
+        let pressure = mainobj.get("pressure").and_then(serde_json::Value::as_f64);
         // location
-        let location = mainobj.get("loc").unwrap().as_str().unwrap().to_string();
-        println!("{}", location);
+        let location = mainobj.get("loc").and_then(serde_json::Value::as_str).map(|x| x.to_string()).unwrap();
         // sensor model
-        let sensorModel = mainobj.get("sensorModel").unwrap().as_str().unwrap().to_string();
+        let sensorModel = mainobj.get("sensorModel").and_then(serde_json::Value::as_str).map(|x| x.to_string()).unwrap();
         // parse the data payload
         let dtflt = mainobj.get("dt").unwrap().as_f64().unwrap();
         // Get second component
