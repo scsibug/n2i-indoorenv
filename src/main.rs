@@ -73,6 +73,7 @@ async fn main() {
         let location = mainobj.get("loc").and_then(serde_json::Value::as_str).map(|x| x.to_string()).unwrap();
         // sensor model
         let sensorModel = mainobj.get("sensorModel").and_then(serde_json::Value::as_str).map(|x| x.to_string()).unwrap();
+        //println!("Temp was {} at {} ({})", temp.map(|x| x.to_string()).unwrap_or("N/A".to_string()), location, sensorModel); 
         // parse the data payload
         let dtflt = mainobj.get("dt").unwrap().as_f64().unwrap();
         // Get second component
